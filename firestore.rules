@@ -1,0 +1,116 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId
+    // Fields:
+    //   - displayName: string (optional)
+    //   - email: string (required)
+    //   - photoURL: string (optional)
+    //   - createdAt: timestamp (required)
+    //
+    // Subcollection: users/{userId}/dailyRecords
+    // Document ID: date (YYYY-MM-DD)
+    // Fields:
+    //   - date: string (required)
+    //   - prayers: map (required)
+    //   - notes: list (required)
+    //
+    // ===============================================================
+
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['email', 'createdAt']) &&
+             isValidEmail(data.email) &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidDailyRecord(data) {
+      return data.keys().hasAll(['date', 'prayers', 'notes']) &&
+             data.date is string &&
+             data.prayers is map &&
+             data.notes is list;
+    }
+
+    function isValidCategory(data) {
+      return data.keys().hasAll(['id', 'name', 'type', 'color']) &&
+             data.id is string &&
+             data.name is string &&
+             data.type in ['income', 'expense'] &&
+             data.color is string;
+    }
+
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['id', 'amount', 'categoryId', 'date', 'type', 'createdAt']) &&
+             data.id is string &&
+             data.amount is number &&
+             data.categoryId is string &&
+             data.date is string &&
+             data.type in ['income', 'expense'] &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidDeveloperInfo(data) {
+      return data.keys().hasAll(['name', 'about']) &&
+             data.name is string &&
+             data.about is string;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "ashik.sbmc434@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    // Rules
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUser(request.resource.data);
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.email == resource.data.email;
+
+      match /dailyRecords/{date} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, update: if isOwner(userId) && isValidDailyRecord(request.resource.data);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /categories/{categoryId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, update: if isOwner(userId) && isValidCategory(request.resource.data);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+
+      match /transactions/{transactionId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, update: if isOwner(userId) && isValidTransaction(request.resource.data);
+        allow delete: if isOwner(userId) || isAdmin();
+      }
+    }
+
+    match /app_settings/developer {
+      allow read: if true;
+      allow write: if isAdmin() && isValidDeveloperInfo(request.resource.data);
+    }
+    
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}

@@ -1,0 +1,104 @@
+{
+  "entities": {
+    "DailyRecord": {
+      "title": "Daily Record",
+      "description": "A record of prayers and notes for a specific day.",
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "description": "The date in YYYY-MM-DD format."
+        },
+        "prayers": {
+          "type": "object",
+          "description": "Prayer completion status."
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Personal notes for the day."
+        }
+      },
+      "required": ["date", "prayers", "notes"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Basic information about the user.",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "createdAt"]
+    },
+    "AccountCategory": {
+      "title": "Account Category",
+      "description": "A category for income or expense.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "icon": { "type": "string" },
+        "color": { "type": "string" },
+        "isBuiltIn": { "type": "boolean" }
+      },
+      "required": ["id", "name", "type", "color"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "An income or expense record.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "amount": { "type": "number" },
+        "categoryId": { "type": "string" },
+        "note": { "type": "string" },
+        "date": { "type": "string" },
+        "type": { "type": "string", "enum": ["income", "expense"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "amount", "categoryId", "date", "type", "createdAt"]
+    },
+    "DeveloperInfo": {
+      "title": "Developer Info",
+      "description": "Information about the app developer.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "photoUrl": { "type": "string" },
+        "about": { "type": "string" },
+        "github": { "type": "string" },
+        "email": { "type": "string" },
+        "website": { "type": "string" }
+      },
+      "required": ["name", "about"]
+    }
+  },
+  "firestore": {
+    "/app_settings/developer": {
+      "schema": "DeveloperInfo",
+      "description": "Global developer information."
+    },
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile document."
+    },
+    "/users/{userId}/dailyRecords/{date}": {
+      "schema": "DailyRecord",
+      "description": "Daily records for a specific user."
+    },
+    "/users/{userId}/categories/{categoryId}": {
+      "schema": "AccountCategory",
+      "description": "Custom categories for accounts."
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Income and expense transactions."
+    }
+  }
+}
